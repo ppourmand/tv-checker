@@ -1,0 +1,8 @@
+{
+  "name"    : "tv_tracker",
+  "version" : "0.0.1",
+  "main"    : "main.js",
+  "scripts" : {
+    "start": "electron ."
+  }
+}
