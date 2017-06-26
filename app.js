@@ -2,13 +2,14 @@ const urllib = require('urllib');
 const fs = require('fs');
 const storage = require('electron-json-storage');
 
-
 var searchButton = document.getElementById('add-to-library-btn');
 var printButton = document.getElementById('print-library-btn');
 var deleteButton = document.getElementById('delete-show-btn');
 var searchTextField = document.getElementById('search-field');
-// deleteAllShowsFromLibrary();
 var rootURL = 'http://api.tvmaze.com'
+
+/** initially displays all the shows from JSON file */
+displayShowsOnScreen();
 
 /** Button actions */
 searchButton.onclick = function() {
@@ -18,12 +19,13 @@ searchButton.onclick = function() {
 }
 
 printButton.onclick = function() {
-  printShowsFromLibrary();
+  displayShowsOnScreen();
 }
 
 deleteButton.onclick = function() {
   var tvShow = document.getElementById('search-field').value;
   deleteShowFromLibrary(tvShow);
+  displayShowsOnScreen();
   searchTextField.value='';
 }
 
@@ -44,7 +46,7 @@ function addShowToLibrary(tvShow){
       if (error) console.log("error");
     });
 
-    printShowsFromLibrary();
+    addShowToScreen(show);
   });
 }
 
@@ -139,4 +141,56 @@ function Episode(name, season, number, airdate, summary) {
   this.number = number;
   this.airdate = airdate;
   this.summary = summary;
+}
+
+/**
+ * Creates new tbody to replace old one so we can display
+ * all the info from the JSON file
+ */
+function displayShowsOnScreen() {
+  var oldTbody = document.getElementById('tv-show-table-body')
+  var newTbody = document.createElement('tbody')
+  var table = document.getElementById('tv-show-table');
+  newTbody.setAttribute('id', 'tv-show-table-body');
+
+  storage.keys(function(error, keys) {
+    if (error) throw error;
+
+    for (var key of keys) {
+      key = key.replace(/%20/g, " ");
+      storage.get(key, function(error, data) {
+        if (error) throw error;
+
+        var tr = document.createElement('tr');
+        var tdName = document.createElement('td');
+        var tdSummary = document.createElement('td');
+        var cleanSummary = data['summary'].replace('</p>', '');
+        tdName.appendChild(document.createTextNode(data['name']));
+        tdSummary.appendChild(document.createTextNode(data['summary']));
+        tr.appendChild(tdName);
+        tr.appendChild(tdSummary);
+        newTbody.appendChild(tr);
+      });
+    }
+  });
+
+  oldTbody.parentNode.replaceChild(newTbody, oldTbody);
+}
+
+/**
+ * Append a tr item to the end of the table on main screen
+ * @constructor
+ * @param {object} show - show object
+ */
+function addShowToScreen(show) {
+  var tbody = document.getElementById('tv-show-table-body')
+  var tr = document.createElement('tr');
+  var tdName = document.createElement('td');
+  var tdSummary = document.createElement('td');
+  tdName.appendChild(document.createTextNode(show['name']));
+  tdSummary.appendChild(document.createTextNode(show['summary']));
+  tr.appendChild(tdName);
+  tr.appendChild(tdSummary);
+  tbody.appendChild(tr);
+
 }
