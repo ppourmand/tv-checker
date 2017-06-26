@@ -2,7 +2,7 @@
 I'll probably re-do this readme in the future but here's the gist of this project.
 
 # Features
-Add shows
-Delete shows
-Browse episodes
-Set episodes as watched/unwatched
+- Add shows
+- Delete shows
+- Browse episodes
+- Set episodes as watched/unwatched
