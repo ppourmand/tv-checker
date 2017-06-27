@@ -2,34 +2,32 @@ const urllib = require('urllib');
 const fs = require('fs');
 const storage = require('electron-json-storage');
 
-var searchButton = document.getElementById('add-to-library-btn');
-var printButton = document.getElementById('print-library-btn');
+var addTvShowButton = document.getElementById('add-to-library-btn');
 var deleteButton = document.getElementById('delete-show-btn');
 var searchTextField = document.getElementById('search-field');
 var rootURL = 'http://api.tvmaze.com'
 
+/** globals */
+var CURRENT_SESSION_TV_SHOWS = [];
+
 /** initially displays all the shows from JSON file */
-displayShowsOnScreen();
+loadTvShowsFromStorage();
 
 /** Button actions */
-searchButton.onclick = function() {
+addTvShowButton.onclick = function() {
   var tvShow = document.getElementById('search-field').value;
-  addShowToLibrary(tvShow);
+  addTvShowToLibrary(tvShow);
   searchTextField.value='';
-}
-
-printButton.onclick = function() {
-  displayShowsOnScreen();
 }
 
 deleteButton.onclick = function() {
-  var tvShow = document.getElementById('search-field').value;
-  deleteShowFromLibrary(tvShow);
-  displayShowsOnScreen();
+  var tvShowName = document.getElementById('search-field').value;
+  deleteTvShowFromLibrary(tvShowName);
+  loadTvShowsFromStorage();
   searchTextField.value='';
 }
 
-function addShowToLibrary(tvShow){
+function addTvShowToLibrary(tvShow){
   urllib.request(rootURL + '/search/shows?q=' + tvShow, function (err, data, res) {
     if (err) {
       console.log("errors!!!")
@@ -41,12 +39,15 @@ function addShowToLibrary(tvShow){
     info = info[0]['show'];
 
     var show = new TelevisionShow(info['name'], info['id'], info['summary'], ['a', 'b', 'c']);
+    CURRENT_SESSION_TV_SHOWS.push(show);
+    addTvShowToScreen(show)
+    console.log(CURRENT_SESSION_TV_SHOWS);
 
     storage.set(info['name'], show, function(error) {
       if (error) console.log("error");
     });
 
-    addShowToScreen(show);
+
   });
 }
 
@@ -74,33 +75,10 @@ function getEpisodeListById(id) {
   return episodes;
 }
 
-/** Deletes specific TV show from the library. */
-function deleteShowFromLibrary(showName) {
-  storage.remove(showName, function(error) {
-    if (error) throw error;
-  });
-}
-
 /** Deletes all the shows from the library. */
 function deleteAllShowsFromLibrary() {
   storage.clear(function(error) {
     if (error) throw error;
-  });
-}
-
-/** Prints all the shows from the library to stdout. */
-function printShowsFromLibrary() {
-  storage.keys(function(error, keys) {
-    if (error) throw error;
-
-    for (var key of keys) {
-      key = key.replace(/%20/g, " ");
-      storage.get(key, function(error, data) {
-        if (error) throw error;
-
-        console.log(data);
-      });
-    }
   });
 }
 
@@ -147,7 +125,7 @@ function Episode(name, season, number, airdate, summary) {
  * Creates new tbody to replace old one so we can display
  * all the info from the JSON file
  */
-function displayShowsOnScreen() {
+function loadTvShowsFromStorage() {
   var oldTbody = document.getElementById('tv-show-table-body')
   var newTbody = document.createElement('tbody')
   var table = document.getElementById('tv-show-table');
@@ -162,9 +140,9 @@ function displayShowsOnScreen() {
         if (error) throw error;
 
         var tr = document.createElement('tr');
+        tr.setAttribute('id', data['name'].toLowerCase());
         var tdName = document.createElement('td');
         var tdSummary = document.createElement('td');
-        var cleanSummary = data['summary'].replace('</p>', '');
         tdName.appendChild(document.createTextNode(data['name']));
         tdSummary.appendChild(document.createTextNode(data['summary']));
         tr.appendChild(tdName);
@@ -179,18 +157,42 @@ function displayShowsOnScreen() {
 
 /**
  * Append a tr item to the end of the table on main screen
- * @constructor
  * @param {object} show - show object
  */
-function addShowToScreen(show) {
+function addTvShowToScreen(tvShow) {
   var tbody = document.getElementById('tv-show-table-body')
   var tr = document.createElement('tr');
+  tr.setAttribute('id', tvShow['name'].toLowerCase());
   var tdName = document.createElement('td');
   var tdSummary = document.createElement('td');
-  tdName.appendChild(document.createTextNode(show['name']));
-  tdSummary.appendChild(document.createTextNode(show['summary']));
+  tdName.appendChild(document.createTextNode(tvShow['name']));
+  tdSummary.appendChild(document.createTextNode(tvShow['summary']));
   tr.appendChild(tdName);
   tr.appendChild(tdSummary);
   tbody.appendChild(tr);
+}
 
+/**
+ * Remove a tr item from the table corresponding to deleted show
+ * @param {string} tvShowName - tv show name
+*/
+function deleteTvShowFromLibrary(tvShowName) {
+  tvShowName.toLowerCase();
+  // delete from current session
+  for(var i = 0; i < CURRENT_SESSION_TV_SHOWS.length; i++) {
+    if (tvShowName === CURRENT_SESSION_TV_SHOWS[i]['name']) {
+      CURRENT_SESSION_TV_SHOWS.splice(i, 1);
+    }
+  }
+
+  // delete from save file
+  storage.remove(tvShowName, function(error) {
+    if (error) throw error;
+  });
+}
+
+function deleteTvShowFromScreen(tvShowName) {
+  tvShowName.toLowerCase();
+  var row = document.getElementById(tvShowName);
+  row.parentNode.removeChild(row);
 }
