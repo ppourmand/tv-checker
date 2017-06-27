@@ -6,3 +6,6 @@ I'll probably re-do this readme in the future but here's the gist of this projec
 - Delete shows
 - Browse episodes
 - Set episodes as watched/unwatched
+
+# Screenshots
+![Main page](/screenshots/main_page.png)
